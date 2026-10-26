@@ -1,0 +1,23 @@
+# Values for shopwise-platform/charts/laravel-service. `name` and `image` are set by the Tiltfile.
+http:
+  workers: 1
+consumers:
+  # Checkout's saga step 6 (ADR-0004): one order per checkoutId, replies order-placed / order-rejected.
+  - name: place-order
+    topics: [orders.place-order]
+scheduler:
+  # Runs the outbox relay.
+  enabled: true
+# Topics this service owns: its events (it is the only producer) and its command topic (ADR-0004: the receiver owns it).
+topics:
+  - name: orders.place-order
+    partitions: 3
+  - name: orders.order-placed
+    partitions: 3
+  - name: orders.order-rejected
+    partitions: 3
+  - name: orders.order-shipped
+    partitions: 3
+env:
+  LOG_CHANNEL: stderr
+  OCTANE_SERVER: frankenphp
