@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\OrderStatus;
 use App\Models\Order;
 
 it('lists every order newest first', function (): void {
@@ -18,7 +19,12 @@ it('filters by status', function (): void {
     $shipped = Order::factory()->shipped()->create();
 
     $this->getJson('/api/admin/orders?status=shipped', adminBearer())->assertOk()->assertJsonPath('data.*.id', [$shipped->id]);
-    $this->getJson('/api/admin/orders?status=cancelled', adminBearer())->assertUnprocessable()->assertJsonValidationErrors('status');
+    $cancelled = Order::factory()->create(['status' => OrderStatus::Cancelled, 'cancelled_at' => now()]);
+
+    $this->getJson('/api/admin/orders?status=cancelled', adminBearer())->assertOk()
+        ->assertJsonPath('data.*.id', [$cancelled->id])
+        ->assertJsonPath('data.0.status', 'cancelled');
+    $this->getJson('/api/admin/orders?status=returned', adminBearer())->assertUnprocessable()->assertJsonValidationErrors('status');
 });
 
 it('searches by order number or customer email', function (): void {

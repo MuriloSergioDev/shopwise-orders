@@ -41,6 +41,7 @@ use Shopwise\Contracts\Events\Orders\OrderShippedV1;
  * @property string|null $tracking_number
  * @property Carbon $placed_at
  * @property Carbon|null $shipped_at
+ * @property Carbon|null $cancelled_at
  * @property-read Collection<int, OrderLine> $lines
  */
 #[Fillable([
@@ -127,6 +128,7 @@ final class Order extends Model
             'shipping_address' => 'array',
             'placed_at' => 'datetime',
             'shipped_at' => 'datetime',
+            'cancelled_at' => 'datetime',
         ];
     }
 }

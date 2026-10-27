@@ -57,6 +57,17 @@ it('refuses to re-ship with other details', function (array $body): void {
     'other tracking number' => [['carrier' => 'UPS', 'trackingNumber' => '1Z000']],
 ]);
 
+it('refuses to ship a cancelled order', function (): void {
+    $order = Order::factory()->create(['status' => OrderStatus::Cancelled, 'cancelled_at' => now()]);
+
+    $this->putJson("/api/admin/orders/{$order->id}/shipment", ['carrier' => 'UPS', 'trackingNumber' => '1Z999'], adminBearer())
+        ->assertConflict()
+        ->assertJsonPath('message', "Order {$order->number} is cancelled and cannot be shipped.");
+
+    expect($order->refresh()->status)->toBe(OrderStatus::Cancelled)
+        ->and(recordedEvents('orders.order-shipped'))->toBe([]);
+});
+
 it('validates the shipment', function (): void {
     $order = Order::factory()->create();
 
@@ -74,5 +85,8 @@ it('only lets a status move forward', function (): void {
     expect(OrderStatus::Placed->canTransitionTo(OrderStatus::Shipped))->toBeTrue()
         ->and(OrderStatus::Shipped->canTransitionTo(OrderStatus::Placed))->toBeFalse()
         ->and(OrderStatus::Shipped->canTransitionTo(OrderStatus::Shipped))->toBeFalse()
-        ->and(OrderStatus::Placed->canTransitionTo(OrderStatus::Placed))->toBeFalse();
+        ->and(OrderStatus::Placed->canTransitionTo(OrderStatus::Placed))->toBeFalse()
+        ->and(OrderStatus::Placed->canTransitionTo(OrderStatus::Cancelled))->toBeTrue()
+        ->and(OrderStatus::Shipped->canTransitionTo(OrderStatus::Cancelled))->toBeFalse()
+        ->and(OrderStatus::Cancelled->canTransitionTo(OrderStatus::Shipped))->toBeFalse();
 });

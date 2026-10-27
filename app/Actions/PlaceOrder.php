@@ -8,6 +8,7 @@ use App\Data\OrderLineData;
 use App\Data\PlaceOrderData;
 use App\Enums\OrderStatus;
 use App\Exceptions\InvalidPlaceOrder;
+use App\Models\CheckoutGuard;
 use App\Models\Order;
 use Illuminate\Support\Facades\DB;
 use Shopwise\Contracts\Events\Orders\OrderPlacedV1;
@@ -17,7 +18,8 @@ use Shopwise\Kit\Messaging\Outbox;
 /**
  * Handles checkout's `orders.place-order` (ADR-0004 step 6). One order per checkoutId: a repeated command with the
  * same contents re-publishes `orders.order-placed`, different contents get `orders.order-rejected`
- * (`duplicate_conflict`), an invalid command gets `orders.order-rejected` (`invalid`). Every command gets a reply.
+ * (`duplicate_conflict`), an invalid command gets `orders.order-rejected` (`invalid`), and any command after
+ * `orders.cancel-order` for the checkout gets `orders.order-rejected` (`cancelled`). Every command gets a reply.
  */
 final readonly class PlaceOrder
 {
@@ -31,6 +33,12 @@ final readonly class PlaceOrder
         $hash = $this->hash($command);
 
         return DB::transaction(function () use ($command, $checkoutId, $hash): ?Order {
+            if (CheckoutGuard::lock($checkoutId)->isCancelled()) {
+                $this->recordRejected($checkoutId, 'cancelled', 'Checkout was cancelled (orders.cancel-order) before this place-order.');
+
+                return null;
+            }
+
             $existing = Order::query()->with('lines')->where('checkout_id', $checkoutId)->lockForUpdate()->first();
             if ($existing instanceof Order) {
                 if (hash_equals($existing->command_hash, $hash)) {

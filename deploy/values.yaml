@@ -5,12 +5,19 @@ consumers:
   # Checkout's saga step 6 (ADR-0004): one order per checkoutId, replies order-placed / order-rejected.
   - name: place-order
     topics: [orders.place-order]
+  # Checkout's compensation when place-order timed out: cancel the order or leave a tombstone, reply order-cancelled.
+  - name: cancel-order
+    topics: [orders.cancel-order]
 scheduler:
   # Runs the outbox relay.
   enabled: true
 # Topics this service owns: its events (it is the only producer) and its command topic (ADR-0004: the receiver owns it).
 topics:
   - name: orders.place-order
+    partitions: 3
+  - name: orders.cancel-order
+    partitions: 3
+  - name: orders.order-cancelled
     partitions: 3
   - name: orders.order-placed
     partitions: 3
