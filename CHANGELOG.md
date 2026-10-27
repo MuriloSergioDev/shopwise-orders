@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/MuriloSergioDev/shopwise-orders/compare/v1.0.0...v1.1.0) (2026-10-27)
+
+
+### Features
+
+* cancel orders on checkout's cancel-order compensation ([70a5883](https://github.com/MuriloSergioDev/shopwise-orders/commit/70a5883254c2b11582994843df549312665aecd1))
+
 ## 1.0.0 (2026-10-27)
 
 
